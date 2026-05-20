@@ -174,7 +174,7 @@ function saveStudent(id) {
     const s = students.find(s=>s.id===id);
     Object.assign(s,{name,email,course,gpa,status});
   } else {
-    students.push({ id:'S00'+nextStudentId++, name, email, course, gpa, status });
+    students.push({ id:'S'+String(nextStudentId++).padStart(3, '0'), name, email, course, gpa, status });
   }
   closeModal();
   renderStudents();
@@ -241,8 +241,10 @@ async function generateReport(type) {
     content.innerHTML = '<p style="color:#64748b">Generating AI report...</p>';
     const summary = students.map(s=>`${s.name}: GPA ${s.gpa}, ${s.course}, ${s.status}`).join('\n');
     try {
+      const apiKey = prompt('Enter your Anthropic API key:');
+      if(!apiKey) { content.innerHTML = '<p style="color:#ef4444">API key required for report generation.</p>'; return; }
       const res = await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST', headers:{'Content-Type':'application/json'},
+        method:'POST', headers:{'Content-Type':'application/json','x-api-key':apiKey},
         body:JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000,
           messages:[{role:'user',content:`You are an academic advisor. Generate a full academic report for this institution.\n\nStudents:\n${summary}\n\nInclude: overall performance summary, at-risk students analysis, course performance breakdown, and 3 actionable recommendations.`}]
         })
@@ -258,8 +260,10 @@ async function getInsights() {
   out.textContent = 'Generating insights...';
   const summary = `${students.length} students, avg GPA ${(students.reduce((s,st)=>s+st.gpa,0)/students.length).toFixed(2)}, ${students.filter(s=>s.gpa<2.0).length} at risk, ${students.filter(s=>s.gpa>=3.5).length} top performers.`;
   try {
+    const apiKey = prompt('Enter your Anthropic API key:');
+    if(!apiKey) { out.textContent = 'API key required.'; return; }
     const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json','x-api-key':apiKey},
       body:JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:600,
         messages:[{role:'user',content:`Academic data: ${summary}\nGive 3 short insights and 2 action points for the institution.`}]
       })
